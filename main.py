@@ -1,14 +1,10 @@
-from pprint import pprint
-from urllib.parse import urlencode, urlparse, parse_qs
-from config import TOKEN
+import os
 import requests
+from urllib.parse import urlencode, urlparse
+from dotenv import load_dotenv
 
 
-def shorten_link(token, url):
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
+def shorten_link(headers, url):
     data = '{ "long_url": "' + url + '", "domain": "bit.ly", "group_guid": "BnahnqHJgFb" }'
     response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=data)
     response.raise_for_status()
@@ -16,11 +12,7 @@ def shorten_link(token, url):
     return bitlink
 
 
-def count_clicks(token, link):
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
+def count_clicks(headers, link):
     url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}/clicks/summary'
     query_args = {
         'unit': 'day',
@@ -33,17 +25,25 @@ def count_clicks(token, link):
     return link_clicks
 
 
-if __name__ == '__main__':
-    link = input('Введите ссылку: ')
-    try:
-        bitlink = shorten_link(TOKEN, link)
-    except requests.exceptions.HTTPError as msg:
-        print(msg.response.json()['description'])
-    else:
-        print("Битлинк:", bitlink)
+def is_bitlink(url):
+    headers = {
+        'Authorization': f'Bearer {os.environ["TOKEN"]}',
+        'Content-Type': 'application/json',
+    }
+    parsed_url = urlparse(url)
+    if parsed_url.path.split('/')[0] == 'bit.ly':
         try:
-            link_clicks = count_clicks(TOKEN, bitlink)
+            return f"Кликов: {count_clicks(headers, parsed_url.path)}"
         except requests.exceptions.HTTPError as msg:
-            print(msg.response.json()['description'])
-        else:
-            print("Кликов:", link_clicks)
+            return f"{msg.response.json()['description']} {msg.response.json()['message']}"
+    else:
+        try:
+            return f"Битлинк: {shorten_link(headers, url)}"
+        except requests.exceptions.HTTPError as msg:
+            return f"{msg.response.json()['description']} {msg.response.json()['message']}"
+
+
+if __name__ == '__main__':
+    load_dotenv()
+    link = input('Введите ссылку: ')
+    print(is_bitlink(link))
