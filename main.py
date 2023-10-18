@@ -44,6 +44,6 @@ if __name__ == '__main__':
         try:
             link_clicks = count_clicks(TOKEN, bitlink)
         except requests.exceptions.HTTPError as msg:
-            print(msg.response.json())
+            print(msg.response.json()['description'])
         else:
             print("Кликов:", link_clicks)
