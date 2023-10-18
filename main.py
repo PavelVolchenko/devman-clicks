@@ -1,26 +1,49 @@
 from pprint import pprint
-
+from urllib.parse import urlencode, urlparse, parse_qs
 from config import TOKEN
 import requests
-def get_profile(user):
-    url = 'https://api-ssl.bitly.com/v4/user'
-    headers = {'Authorization': f'Bearer {TOKEN}'}
-    response = requests.get(url, headers=headers)
+
+
+def shorten_link(token, url):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+    data = '{ "long_url": "' + url + '", "domain": "bit.ly", "group_guid": "BnahnqHJgFb" }'
+    response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=data)
     response.raise_for_status()
-    return response.json()
+    bitlink = response.json()['id']
+    return bitlink
 
+def count_clicks(token, link):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+    url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}/clicks/summary'
+    query_args = {
+        'unit': 'day',
+        'units': '-1',
+    }
+    encoded_args = urlencode(query_args, doseq=True)
+    response = requests.get(url + "?" + encoded_args, headers=headers)
+    response.raise_for_status()
+    link_clicks = response.json()['total_clicks']
+    return link_clicks
 
-    # headers = {
-    #     'Authorization': 'Bearer {TOKEN}',
-    #     'Content-Type': 'application/json',
-    # }
-    #
-    # data = '{ "long_url": "https://dev.bitly.com", "domain": "bit.ly", "group_guid": "o_5io4i55lq4" }'
-    #
-    # response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=data)
 
 
 if __name__ == '__main__':
-    pprint(get_profile('xakep'))
-
-
+    link = input('Введите ссылку: ')
+    try:
+        bitlink = shorten_link(TOKEN, link)
+    except requests.exceptions.HTTPError as msg:
+        print(msg.response.json()['description'])
+    else:
+        print("Битлинк:", bitlink)
+        try:
+            link_clicks = count_clicks(TOKEN, bitlink)
+        except requests.exceptions.HTTPError as msg:
+            print(msg.response.json())
+        else:
+            print("Кликов:", link_clicks)
