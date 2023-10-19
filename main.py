@@ -1,12 +1,13 @@
 import os
 import requests
-from urllib.parse import urlencode, urlparse
 from dotenv import load_dotenv
 
 
+# https://google.com
+# bit.ly/3QmBcml
 def shorten_link(headers, url):
-    data = '{ "long_url": "' + url + '", "domain": "bit.ly", "group_guid": "BnahnqHJgFb" }'
-    response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=data)
+    long_url = '{"long_url":"' + url + '"}'
+    response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=long_url)
     response.raise_for_status()
     bitlink = response.json()['id']
     return bitlink
@@ -14,36 +15,39 @@ def shorten_link(headers, url):
 
 def count_clicks(headers, link):
     url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}/clicks/summary'
-    query_args = {
+    payload = {
         'unit': 'day',
         'units': '-1',
     }
-    encoded_args = urlencode(query_args, doseq=True)
-    response = requests.get(url + "?" + encoded_args, headers=headers)
+    response = requests.get(url, headers=headers, params=payload)
     response.raise_for_status()
     link_clicks = response.json()['total_clicks']
     return link_clicks
 
 
-def is_bitlink(url):
-    headers = {
-        'Authorization': f'Bearer {os.environ["TOKEN"]}',
-        'Content-Type': 'application/json',
-    }
-    parsed_url = urlparse(url)
-    if parsed_url.path.split('/')[0] == 'bit.ly':
-        try:
-            return f"Кликов: {count_clicks(headers, parsed_url.path)}"
-        except requests.exceptions.HTTPError as msg:
-            return f"{msg.response.json()['description']} {msg.response.json()['message']}"
-    else:
-        try:
-            return f"Битлинк: {shorten_link(headers, url)}"
-        except requests.exceptions.HTTPError as msg:
-            return f"{msg.response.json()['description']} {msg.response.json()['message']}"
+def is_bitlink(headers, link):
+    url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}'
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return True
+    except:
+        return False
 
 
 if __name__ == '__main__':
     load_dotenv()
+    headers = {
+        'Authorization': f'Bearer {os.environ["TOKEN"]}',
+    }
     link = input('Введите ссылку: ')
-    print(is_bitlink(link))
+    if is_bitlink(headers, link):
+        try:
+            print(count_clicks(headers, link))
+        except requests.exceptions.HTTPError as msg:
+            f"{msg.response.json()['description']} {msg.response.json()['message']}"
+    else:
+        try:
+            print(shorten_link(headers, link))
+        except requests.exceptions.HTTPError as msg:
+            f"{msg.response.json()['description']} {msg.response.json()['message']}"
