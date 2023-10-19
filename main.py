@@ -3,8 +3,6 @@ import requests
 from dotenv import load_dotenv
 
 
-# https://google.com
-# bit.ly/3QmBcml
 def shorten_link(headers, url):
     long_url = '{"long_url":"' + url + '"}'
     response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=long_url)
