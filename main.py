@@ -26,15 +26,13 @@ def count_clicks(headers, link):
 def is_bitlink(headers, link):
     url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}'
     response = requests.get(url, headers=headers)
-    if response.ok:
-        return True
-    return False
+    return response.ok
 
 
 if __name__ == '__main__':
     load_dotenv()
     headers = {
-        'Authorization': f'Bearer {os.environ["TOKEN"]}',
+        'Authorization': f'Bearer {os.environ["BITLY_TOKEN"]}',
     }
     link = input('Введите ссылку: ')
     try:
