@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 
 def shorten_link(headers, url):
-    long_url = '{"long_url":"' + url + '"}'
-    response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, data=long_url)
+    payload = {"long_url": url}
+    response = requests.post('https://api-ssl.bitly.com/v4/shorten', headers=headers, json=payload)
     response.raise_for_status()
     bitlink = response.json()['id']
     return bitlink
@@ -25,12 +25,10 @@ def count_clicks(headers, link):
 
 def is_bitlink(headers, link):
     url = f'https://api-ssl.bitly.com/v4/bitlinks/{link}'
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+    response = requests.get(url, headers=headers)
+    if response.ok:
         return True
-    except:
-        return False
+    return False
 
 
 if __name__ == '__main__':
@@ -39,13 +37,11 @@ if __name__ == '__main__':
         'Authorization': f'Bearer {os.environ["TOKEN"]}',
     }
     link = input('Введите ссылку: ')
-    if is_bitlink(headers, link):
-        try:
+    try:
+        if is_bitlink(headers, link):
             print(count_clicks(headers, link))
-        except requests.exceptions.HTTPError as msg:
-            f"{msg.response.json()['description']} {msg.response.json()['message']}"
-    else:
-        try:
+        else:
             print(shorten_link(headers, link))
-        except requests.exceptions.HTTPError as msg:
-            f"{msg.response.json()['description']} {msg.response.json()['message']}"
+    except requests.exceptions.HTTPError as msg:
+        print(f"{msg.response.json()['description']} {msg.response.json()['message']}")
+
